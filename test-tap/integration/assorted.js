@@ -160,3 +160,19 @@ test('uses sortTestFiles to sort test files', t => {
 		t.end();
 	});
 });
+
+test('--seed reports the seed used for randomization', t => {
+	execCli(['--seed=123', 'a.js'], {dirname: 'fixture/random-order'}, (error, stdout) => {
+		t.error(error);
+		t.match(stdout, /Randomized with --seed=123/);
+		t.end();
+	});
+});
+
+test('--seed validates the configured seed', t => {
+	execCli(['--seed=0', 'a.js'], {dirname: 'fixture/random-order'}, (error, stdout, stderr) => {
+		t.equal(error.code, 1);
+		t.match(stderr, /seed.*integer between 1 and 4294967295/i);
+		t.end();
+	});
+});

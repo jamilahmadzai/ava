@@ -23,6 +23,8 @@ To ignore files, prefix the pattern with an `!` (exclamation mark).
 		"concurrency": 5,
 		"failFast": true,
 		"failWithoutAssertions": false,
+		"randomize": true,
+		"seed": 123456,
 		"environmentVariables": {
 			"MY_ENVIRONMENT_VARIABLE": "some value"
 		},
@@ -50,6 +52,8 @@ Arguments passed to the CLI will always take precedence over the CLI options con
 - `workerThreads`: use worker threads to run tests (enabled by default). If `false`, tests will run in child processes
 - `failFast`: stop running further tests once a test fails
 - `failWithoutAssertions`: if `false`, does not fail a test if it doesn't run [assertions](./03-assertions.md)
+- `randomize`: run selected test files and concurrent tests within each file in random order
+- `seed`: seed for [randomizing test order](./05-command-line.md#randomizing-test-order). Setting a seed also enables randomization.
 - `environmentVariables`: specifies environment variables to be made available to the tests. The environment variables defined here override the ones from `process.env`
 - `serial`: if `true`, prevents parallel execution of tests within a file
 - `tap`: if `true`, enables the [TAP reporter](./05-command-line.md#tap-reporter)

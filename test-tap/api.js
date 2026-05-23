@@ -8,6 +8,7 @@ import {test} from 'tap';
 import Api from '../lib/api.js';
 import normalizeExtensions from '../lib/extensions.js';
 import {normalizeGlobs} from '../lib/globs.js';
+import {shuffle} from '../lib/randomize.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT_DIR = path.join(__dirname, '..');
@@ -489,4 +490,30 @@ test('run from package.json folder by default', async t => {
 		.then(runStatus => {
 			t.equal(runStatus.stats.passedTests, 1);
 		});
+});
+
+test('randomize shuffles selected files with the reported seed', async t => {
+	t.plan(2);
+
+	const files = ['a.js', 'b.js', 'c.js', 'd.js'].map(file => path.join(__dirname, 'fixture/random-order', file));
+	const actual = [];
+	const api = await apiCreator({
+		cacheEnabled: false,
+		randomize: true,
+		randomSeed: 123,
+		serial: true,
+		workerThreads: false,
+	});
+
+	api.on('run', ({data: plan}) => {
+		t.equal(plan.randomSeed, 123);
+		plan.status.on('stateChange', ({data: evt}) => {
+			if (evt.type === 'test-passed') {
+				actual.push(evt.testFile);
+			}
+		});
+	});
+
+	await api.run({files});
+	t.strictSame(actual, shuffle(files, 123));
 });

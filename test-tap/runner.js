@@ -2,6 +2,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 
 import {test} from 'tap';
 
+import {seedForString, shuffle} from '../lib/randomize.js';
 import Runner from '../lib/runner.js';
 import {set as setOptions} from '../lib/worker/options.js';
 
@@ -424,6 +425,80 @@ test('options.serial forces all tests to be serial', t => {
 			a.pass();
 			t.strictSame(array, [1, 2]);
 		});
+	});
+});
+
+test('randomSeed shuffles concurrent tests reproducibly', t => {
+	const titles = ['one', 'two', 'three', 'four', 'five'];
+	const actual = [];
+
+	return promiseEnd(new Runner({file: import.meta.url, randomSeed: 123}), runner => {
+		for (const title of titles) {
+			runner.chain(title, a => {
+				actual.push(title);
+				a.pass();
+			});
+		}
+	}).then(() => {
+		t.strictSame(actual, shuffle(titles, seedForString(123, import.meta.url)));
+	});
+});
+
+test('randomSeed preserves serial test order before shuffled concurrent tests', t => {
+	const actual = [];
+	const concurrent = ['one', 'two', 'three', 'four'];
+
+	return promiseEnd(new Runner({file: import.meta.url, randomSeed: 123}), runner => {
+		runner.chain('one', a => {
+			actual.push('one');
+			a.pass();
+		});
+
+		runner.chain.serial('serial one', a => {
+			actual.push('serial one');
+			a.pass();
+		});
+
+		runner.chain('two', a => {
+			actual.push('two');
+			a.pass();
+		});
+
+		runner.chain.serial('serial two', a => {
+			actual.push('serial two');
+			a.pass();
+		});
+
+		runner.chain('three', a => {
+			actual.push('three');
+			a.pass();
+		});
+
+		runner.chain('four', a => {
+			actual.push('four');
+			a.pass();
+		});
+	}).then(() => {
+		t.strictSame(actual, [
+			'serial one',
+			'serial two',
+			...shuffle(concurrent, seedForString(123, import.meta.url)),
+		]);
+	});
+});
+
+test('options.serial keeps source order when randomSeed is set', t => {
+	const actual = [];
+
+	return promiseEnd(new Runner({file: import.meta.url, randomSeed: 123, serial: true}), runner => {
+		for (const title of ['one', 'two', 'three']) {
+			runner.chain(title, a => {
+				actual.push(title);
+				a.pass();
+			});
+		}
+	}).then(() => {
+		t.strictSame(actual, ['one', 'two', 'three']);
 	});
 });
 

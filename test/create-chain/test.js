@@ -11,6 +11,62 @@ function createTestChain() {
 	return {calls, chain};
 }
 
+test('cleanup() declares before and after.always hooks', t => {
+	const {calls, chain} = createTestChain();
+	const implementation = () => {};
+
+	chain.cleanup('reset state', implementation, 'argument');
+
+	t.is(calls.length, 2);
+	t.deepEqual(calls.map(call => call.metadata.type), ['before', 'after']);
+	t.deepEqual(calls.map(call => call.metadata.always), [false, true]);
+	t.deepEqual(calls.map(call => call.metadata.skipped), [undefined, undefined]);
+	t.deepEqual(calls.map(call => call.arguments_), [
+		['reset state', implementation, 'argument'],
+		['reset state', implementation, 'argument'],
+	]);
+	t.not(calls[0].arguments_, calls[1].arguments_);
+});
+
+test('cleanupEach() declares beforeEach and after.always hooks', t => {
+	const {calls, chain} = createTestChain();
+	const implementation = () => {};
+
+	chain.cleanupEach('reset state', implementation, 'argument');
+
+	t.is(calls.length, 2);
+	t.deepEqual(calls.map(call => call.metadata.type), ['beforeEach', 'after']);
+	t.deepEqual(calls.map(call => call.metadata.always), [false, true]);
+	t.deepEqual(calls.map(call => call.arguments_), [
+		['reset state', implementation, 'argument'],
+		['reset state', implementation, 'argument'],
+	]);
+	t.not(calls[0].arguments_, calls[1].arguments_);
+});
+
+test('serial cleanup hooks preserve the serial flag', t => {
+	const {calls, chain} = createTestChain();
+
+	chain.serial.cleanup('reset state', () => {});
+	chain.serial.cleanupEach('reset each state', () => {});
+
+	t.is(calls.length, 4);
+	t.deepEqual(calls.map(call => call.metadata.type), ['before', 'after', 'beforeEach', 'after']);
+	t.deepEqual(calls.map(call => call.metadata.always), [false, true, false, true]);
+	t.true(calls.every(call => call.metadata.serial));
+});
+
+test('cleanup hooks can be skipped', t => {
+	const {calls, chain} = createTestChain();
+
+	chain.cleanup.skip('reset state', () => {});
+	chain.cleanupEach.skip('reset each state', () => {});
+
+	t.is(calls.length, 4);
+	t.true(calls.every(call => call.metadata.skipped));
+	t.deepEqual(calls.map(call => call.metadata.type), ['before', 'after', 'beforeEach', 'after']);
+});
+
 test('skipIf() keeps chaining methods available when condition is true', t => {
 	const {calls, chain} = createTestChain();
 
